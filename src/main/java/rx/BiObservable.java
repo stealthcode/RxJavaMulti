@@ -61,73 +61,94 @@ public class BiObservable<T0, T1> {
         return zip(ob1.map(f), ob1);
     }
 
-    public static <T0, T1> BiObservable<T0, T1> zip(Observable<? extends T0> ob0, Observable<? extends T1> ob1) {
-        return null;
+    public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
+        return create(new BiOnSubscribe<T0, T1>() {
+            @Override
+            public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
+                subscriber.add(Observable.zip(ob0, ob1, new Func2<T0, T1, Void>() {
+                    @Override
+                    public Void call(T0 t0, T1 t1) {
+                        subscriber.onNext(t0, t1);
+                        return null;
+                    }
+                }).subscribe(new Observer<Void>() {
+                    @Override
+                    public void onCompleted() {
+                        subscriber.onComplete();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        subscriber.onError(e);
+                    }
+
+                    @Override
+                    public void onNext(Void t) {
+                    }
+                }));
+            }
+        });
     }
 
-    public static <T0, T1, K> BiObservable<T0, T1> join(Observable<? extends T0> ob0, Func1<T0, K> keySelector0, Observable<? extends T1> ob1, Func1<T1, K> keySelector1) {
-        return null;
-    }
+    public static final <T0, T1> BiObservable<T0, T1> combineLatest(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
+        return create(new BiOnSubscribe<T0, T1>() {
+            @Override
+            public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
+                subscriber.add(Observable.combineLatest(ob0, ob1, new Func2<T0, T1, Void>() {
+                    @Override
+                    public Void call(T0 t0, T1 t1) {
+                        subscriber.onNext(t0, t1);
+                        return null;
+                    }
+                }).subscribe(new Observer<Void>() {
+                    @Override
+                    public void onCompleted() {
+                        subscriber.onComplete();
+                    }
 
-    public static final <T0, T1> BiObservable<T0, T1> combineLatest(Observable<? extends T0> o0, Observable<? extends T1> o1) {
-        return null;
+                    @Override
+                    public void onError(Throwable e) {
+                        subscriber.onError(e);
+                    }
+
+                    @Override
+                    public void onNext(Void t) {
+                    }
+                }));
+            }
+        });
     }
 
     public static <T0, T1> BiObservable<T0, T1> product(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new BiOnSubscribe<T0, T1>() {
             @Override
             public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
-                final AtomicInteger active = new AtomicInteger(1);
-                final AtomicBoolean error = new AtomicBoolean();
-
-                ob0.subscribe(new Subscriber<T0>() {
+                subscriber.add(ob0.flatMap(new Func1<T0, Observable<Void>>() {
+                    @Override
+                    public Observable<Void> call(final T0 t0) {
+                        return ob1.map(new Func1<T1, Void>() {
+                            @Override
+                            public Void call(T1 t1) {
+                                subscriber.onNext(t0, t1);
+                                return null;
+                            }
+                        });
+                    }
+                }).subscribe(new Observer<Void>() {
                     @Override
                     public void onCompleted() {
-                        if (active.decrementAndGet() == 0)
-                            subscriber.onComplete();
+                        subscriber.onComplete();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        int last;
-                        while (!active.compareAndSet(last = active.get(), 0))
-                            ;
-                        if (last != 0 && error.compareAndSet(false, true)) {
-                            subscriber.onError(e);
-                        }
+                        subscriber.onError(e);
                     }
 
                     @Override
-                    public void onNext(final T0 t0) {
-                        if (error.get())
-                            return;
-                        active.incrementAndGet();
-                        ob1.subscribe(new Subscriber<T1>() {
-                            @Override
-                            public void onCompleted() {
-                                if (active.decrementAndGet() == 0)
-                                    subscriber.onComplete();
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                int last;
-                                while (!active.compareAndSet(last = active.get(), 0))
-                                    ;
-                                if (last != 0 && error.compareAndSet(false, true)) {
-                                    subscriber.onError(e);
-                                }
-                            }
-
-                            @Override
-                            public void onNext(T1 t1) {
-                                if (error.get())
-                                    return;
-                                subscriber.onNext(t0, t1);
-                            }
-                        });
+                    public void onNext(Void t) {
                     }
-                });
+                }));
             }
         });
     }
