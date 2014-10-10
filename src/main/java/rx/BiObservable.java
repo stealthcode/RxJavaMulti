@@ -7,13 +7,10 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
 import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class BiObservable<T0, T1> {
     private BiOnSubscribe<T0, T1> f;
@@ -57,8 +54,8 @@ public class BiObservable<T0, T1> {
         });
     }
 
-    public static <T0, T1> BiObservable<T0, T1> generateFirst(final Observable<? extends T1> ob1, final Func1<? super T1, ? extends T0> f) {
-        return zip(ob1.map(f), ob1);
+    public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Func1<? super T0, ? extends T1> f) {
+        return zip(ob0, ob0.map(f));
     }
 
     public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
@@ -153,10 +150,44 @@ public class BiObservable<T0, T1> {
         });
     }
 
-    public static <T0, T1> BiObservable<T0, T1> just(T0 i0, Observable<? extends T1> ob1) {
+    public static <T0, T1> BiObservable<T0, T1> sparseProduct(final Observable<? extends T0> ob0, final Func1<? super T0, Observable<T1>> func) {
+        return create(new BiOnSubscribe<T0, T1>() {
+            @Override
+            public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
+                subscriber.add(ob0.flatMap(new Func1<T0, Observable<Void>>() {
+                    @Override
+                    public Observable<Void> call(final T0 t0) {
+                        return func.call(t0).map(new Func1<T1, Void>() {
+                            @Override
+                            public Void call(T1 t1) {
+                                subscriber.onNext(t0, t1);
+                                return null;
+                            }
+                        });
+                    }
+                }).subscribe(new Observer<Void>() {
+                    @Override
+                    public void onCompleted() {
+                        subscriber.onComplete();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        subscriber.onError(e);
+                    }
+
+                    @Override
+                    public void onNext(Void t) {
+                    }
+                }));
+            }
+        });
+    }
+
+    public static <T0, T1> BiObservable<T0, T1> product(T0 i0, Observable<? extends T1> ob1) {
         return product(Observable.just(i0), ob1);
     }
-    
+
     private static class Const1<S0, S1> implements Func2<S0, S1, S0> {
         @Override
         public S0 call(S0 first, S1 second) {
@@ -200,14 +231,33 @@ public class BiObservable<T0, T1> {
     }
 
     public <R> BiObservable<? extends R, ? extends T1> mapFirst(final Func1<? super T0, ? extends R> func) {
-        return transform(new Func2<T0, T1, R>(){
+        return transform(new Func2<T0, T1, R>() {
             @Override
             public R call(T0 t0, T1 t1) {
                 return func.call(t0);
-            }}, new Const2<T0, T1>());
+            }
+        }, new Const2<T0, T1>());
     }
-    
-    public <R> Observable<? extends R> biMap(final Func2<? super T0, ? super T1, ? extends R> func) {
+
+    // for TriObservable we'll need many combinations of flatten
+    // <a,b,c> -> <r,a>,
+    // <a,b,c> -> <r,b>,
+    // <a,b,c> -> <r,c>,
+    // <a,b,c> -> <r>
+    //
+    // Quad
+    // <a,b,c,d> -> <r,a,b>
+    // <a,b,c,d> -> <r,a,c>
+    // <a,b,c,d> -> <r,a,d>
+    // <a,b,c,d> -> <r,b,c>
+    // <a,b,c,d> -> <r,b,d>
+    // <a,b,c,d> -> <r,c,d>
+    // <a,b,c,d> -> <r,a>
+    // <a,b,c,d> -> <r,b>
+    // <a,b,c,d> -> <r,c>
+    // <a,b,c,d> -> <r,d>
+    // <a,b,c,d> -> <r>
+    public <R> Observable<? extends R> bimap(final Func2<? super T0, ? super T1, ? extends R> func) {
         return lift(new BiOperator<R, T0, T1>() {
 
             @Override
@@ -435,7 +485,8 @@ public class BiObservable<T0, T1> {
             @Override
             public R call(T0 t0, T1 t1) {
                 return func.call(t1);
-            }});
+            }
+        });
     }
 
     private static <T0, T1, R> Func2<T1, T0, R> flip(final Func2<? super T0, ? super T1, ? extends R> func) {
