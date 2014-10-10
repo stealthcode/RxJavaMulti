@@ -20,7 +20,7 @@ public class BiObservableTest {
                     return new Stage1(t1, "args");
                 }
             });
-        BiObservable<OperationLogger, Stage2> pipeline = BiObservable.from(ops, new Func1<Stage1, OperationLogger>() {
+        BiObservable.generateFirst(ops, new Func1<Stage1, OperationLogger>() {
                 @Override
                 public OperationLogger call(Stage1 t1) {
                     return new OperationLogger(t1.getId());
@@ -38,25 +38,23 @@ public class BiObservableTest {
                         throw new RuntimeException("Stage1 failed for operation "+t2.getId(), e);
                     }
                 }
-            });
-        pipeline.selectFirst()
-            .doOnNext(new Action1<OperationLogger>() {
+            }).doOnNextFirst(new Action1<OperationLogger>() {
                 @Override
                 public void call(OperationLogger t1) {
                     t1.dumpLog(new File("/tmp/pipeline/log.txt"));
-                }});
-        
-        Observable<String> continuation = pipeline
-                .selectSecond()
-                .map(new Func1<Stage2, String>() {
+                }
+            }).mapSecond(new Func1<Stage2, String>() {
+                @Override
+                public String call(Stage2 t2) {
+                    return t2.getContent();
+                }
+            }).mapFirst(new Func1<OperationLogger, OutputWriter>() {
 
-                    @Override
-                    public String call(Stage2 t2) {
-                        return t2.getContent();
-                    }
-                });
-        BiObservable.just(new OutputWriter(), continuation)
-            .doOnNext(new Action2<OutputWriter, String>() {
+                @Override
+                public OutputWriter call(OperationLogger t1) {
+                    return new OutputWriter();
+                }
+            }).doOnNext(new Action2<OutputWriter, String>() {
 
                 @Override
                 public void call(OutputWriter t1, String t2) {
@@ -112,8 +110,10 @@ public class BiObservableTest {
         }
 
         private static Stage2 advance(Stage1 stage1) throws Exception {
+            /*
             if (System.currentTimeMillis() % 3 == 0)
                 throw new Exception("Unlucky roll. Tough break pal.");
+                */
             int id = stage1.getId();
             String content = "("+ stage1.getContent() + ")";
             return new Stage2(id, content);
@@ -130,7 +130,7 @@ public class BiObservableTest {
         }
         
         public void dumpLog(File f) {
-            System.out.println(log.toString());
+            System.out.println(log.getLog());
         }
 
         private static class LogBuilder {
@@ -138,6 +138,9 @@ public class BiObservableTest {
             public LogBuilder append(String msg) {
                 s.append(msg).append('\n');
                 return this;
+            }
+            public String getLog() {
+                return s.toString();
             }
         }
         
