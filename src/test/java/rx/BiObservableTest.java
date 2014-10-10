@@ -2,52 +2,31 @@ package rx;
 
 import org.junit.Test;
 
-import rx.functions.Func1;
-import rx.functions.Func2;
-
 import java.io.File;
 import java.util.Objects;
 
 public class BiObservableTest {
     @Test
     public void exampleOfUsage() {
-        Observable<Stage1> ops = Observable.range(0, 10).map(new Func1<Integer, Stage1>() {
-            @Override
-            public Stage1 call(Integer id) {
-                return new Stage1(id, "args");
+        Observable<Stage1> ops = Observable.range(0, 10).map(id -> new Stage1(id, "args"));
+
+        BiObservable.zip(ops, stage1 -> new OperationLogger(stage1.getId())).mapFirst((stage1, logger) -> {
+            try {
+                logger.log("Starting stage1");
+                Stage2 stage2 = Stage2.advance(stage1);
+                logger.log("Ending stage1");
+                return stage2;
+            } catch (Exception e) {
+                logger.logException("Exception in Stage1", e);
+                throw new RuntimeException("Stage1 failed for operation " + stage1.getId(), e);
             }
-        });
-        BiObservable.zip(ops, new Func1<Stage1, OperationLogger>() {
-            @Override
-            public OperationLogger call(Stage1 stage1) {
-                return new OperationLogger(stage1.getId());
-            }
-        }).mapFirst(new Func2<Stage1, OperationLogger, Stage2>() {
-            @Override
-            public Stage2 call(Stage1 stage1, OperationLogger logger) {
-                try {
-                    logger.log("Starting stage1");
-                    Stage2 stage2 = Stage2.advance(stage1);
-                    logger.log("Ending stage1");
-                    return stage2;
-                } catch (Exception e) {
-                    logger.logException("Exception in Stage1", e);
-                    throw new RuntimeException("Stage1 failed for operation " + stage1.getId(), e);
-                }
-            }
-        }).mapSecond(new Func1<OperationLogger, OutputWriter>() {
-            @Override
-            public OutputWriter call(OperationLogger logger) {
-                logger.dumpLog(new File("/tmp/pipeline/log.txt"));
-                return new OutputWriter();
-            }
-        }).mapFirst(new Func2<Stage2, OutputWriter, String>() {
-            @Override
-            public String call(Stage2 stage2, OutputWriter writer) {
-                String content = stage2.getContent();
-                writer.write(content);
-                return content;
-            }
+        }).mapSecond((logger) -> {
+            logger.dumpLog(new File("/tmp/pipeline/log.txt"));
+            return new OutputWriter();
+        }).mapFirst((stage2, writer) -> {
+            String content = stage2.getContent();
+            writer.write(content);
+            return content;
         }).subcribe(new DualSubscriber<String, OutputWriter>() {
             @Override
             public void onNext(String content, OutputWriter writer) {
