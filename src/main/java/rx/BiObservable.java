@@ -6,7 +6,6 @@ import rx.functions.Action2;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
-import rx.subjects.PublishSubject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -55,7 +54,32 @@ public class BiObservable<T0, T1> {
     }
 
     public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Func1<? super T0, ? extends T1> f) {
-        return zip(ob0, ob0.map(f));
+        return create(new BiOnSubscribe<T0, T1>() {
+            @Override
+            public void call(DualSubscriber<? super T0, ? super T1> subscriber) {
+                ob0.unsafeSubscribe(new Subscriber<T0>() {
+                    @Override
+                    public void onCompleted() {
+                        subscriber.onComplete();
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        subscriber.onError(e);
+                    }
+
+                    @Override
+                    public void onNext(T0 t0) {
+                        try {
+                            T1 t1 = f.call(t0);
+                            subscriber.onNext(t0, t1);
+                        } catch(Throwable e) {
+                            subscriber.onError(e);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
