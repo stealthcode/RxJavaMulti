@@ -1,106 +1,192 @@
 package rx;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import rx.Observable.OnSubscribe;
 import rx.functions.Action1;
 import rx.functions.Action2;
 import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
+import rx.internal.operators.OperatorBiMap;
+import rx.internal.operators.OperatorDoOnNextDual;
+import rx.internal.operators.OperatorFlip;
+import rx.internal.operators.OperatorGenerate;
+import rx.internal.operators.OperatorScan1;
+import rx.internal.operators.OperatorTakeLast2;
+import rx.internal.operators.OperatorMapDual;
+import rx.internal.types.Const1;
+import rx.internal.types.Const2;
 
 public class BiObservable<T0, T1> {
-    private BiOnSubscribe<T0, T1> f;
+    private BiOnSubscribe<T0, T1> onSubscribeFunc;
 
-    public static interface DualOperator<R0, R1, T0, T1> extends Func1<DualSubscriber<? super R0, ? super R1>, DualSubscriber<? super T0, ? super T1>> {
+    /**
+     * Composes an Rx operator's effect to a to a subscriber and returns a new subscriber. This operator applies its effect to a two 
+     * valued {@link DualSubscriber subscriber} and returns a new subscriber of the same kind.  
+     * 
+     * @param <R0> first downstream type (to consumer)
+     * @param <R1> second downstream type 
+     * @param <T0> first upstream type (from producer)
+     * @param <T1> second downstream type
+     */
+    public static interface DualOperator<R0, R1, T0, T1> {
+		public DualSubscriber<? super T0, ? super T1> wrapDual(DualSubscriber<? super R0, ? super R1> t1);
+    }
+    
+    /**
+     * Composes an Rx operator's effect to a subscriber and returns a new subscriber. This operator transforms a two valued {@link 
+     * DualSubscriber subscriber} and adapts it to a single valued {@link Subscriber} that can subscribe to an Observable. This 
+     * allows conversion from an {@link Observable observable} to a {@link BiObservable bi observable}.
+     *
+     * @param <R0> type of the first argument
+     * @param <R1> type of the second argument
+     * @param <T> type of the Observable
+     * 
+     * @see BiObservable#lift(Observable, SingleToDualOperator)
+     */
+    public static interface SingleToDualOperator<R0, R1, T> {
+    	public Subscriber<T> wrapSingleToDual(DualSubscriber<? super R0, ? super R1> t1);
     }
 
-    public static interface BiOperator<R, T0, T1> extends Func1<Subscriber<? super R>, BiSubscriber<? super T0, ? super T1>> {
+    /**
+     * Composes an Rx operator's effect to a subscriber and returns a new subscriber. Takes an Rx operator's single valued 
+     * subscriber and adapts it to a DualSubscriber that can subscribe to a BiObservable. This allows conversion from a BiObservable 
+     * to an {@link Observable}.  
+     *
+     * @param <R> type of a valid downstream {@link Subscriber}
+     * @param <T0> type of first argument
+     * @param <T1> type of second argument
+     */
+    public static interface BiOperator<R, T0, T1> {
+    	public BiSubscriber<? super T0, ? super T1> wrapDualToSingle(Subscriber<? super R> t1);
     }
 
+    /**
+     * An action used by a {@link BiObservable} to produce data to be consumed by a downstream {@link BiSubscriber} or {@link 
+     * DualSubscriber}.
+     *
+     * @param <T0> type of first argument
+     * @param <T1> type of second argument
+     */
     public static interface BiOnSubscribe<T0, T1> extends Action1<DualSubscriber<? super T0, ? super T1>> {
     }
 
-    private BiObservable(BiOnSubscribe<T0, T1> f) {
-        this.f = f;
+    /**
+     * @param onSubscribeFunc
+     */
+    private BiObservable(BiOnSubscribe<T0, T1> onSubscribeFunc) {
+        this.onSubscribeFunc = onSubscribeFunc;
     }
 
-    public static <T0, T1> BiObservable<T0, T1> create(BiOnSubscribe<T0, T1> f) {
-        return new BiObservable<T0, T1>(f);
+    /**
+     * @param onSubscribe 
+     * @return a {@link BiObservable} wrapping the given {@link BiOnSubscribe} action.
+     */
+    public static <T0, T1> BiObservable<T0, T1> create(BiOnSubscribe<T0, T1> onSubscribe) {
+        return new BiObservable<T0, T1>(onSubscribe);
     }
 
+    /**
+     * @param subscriber
+     */
     public void subcribe(DualSubscriber<? super T0, ? super T1> subscriber) {
-        f.call(subscriber);
+        onSubscribeFunc.call(subscriber);
     }
 
+    /**
+     * Create a new BiObservable that defers the subscription of {@code this} with a {@link DualSubscriber subscriber} that applies 
+     * the given operator's effect to values produced when subscribed to.
+     * 
+     * @param dualOperator a function to adapt the types and semantics of the downstream operator. 
+     * @return a new {@link BiObservable} with a {@link BiOnSubscribe onSubscribeFunc} that subscribes to {@code this}.
+     * @see BiObservable#lift(BiOperator) 
+     */
     public <R0, R1> BiObservable<R0, R1> lift(final DualOperator<? extends R0, ? extends R1, ? super T0, ? super T1> dualOperator) {
-        return BiObservable.create(new BiOnSubscribe<R0, R1>() {
+        return new BiObservable<R0, R1>(new BiOnSubscribe<R0, R1>() {
             @Override
             public void call(DualSubscriber<? super R0, ? super R1> child) {
-                f.call(dualOperator.call(child));
+                onSubscribeFunc.call(dualOperator.wrapDual(child));
             }
         });
     }
 
+    /**
+     * Create a new {@link Observable} that defers the subscription of {@code this} with a {@link DualSubscriber subscriber} that 
+     * applies the given operator's effect to values produced when subscribed to. This overload of {@code lift} converts a 
+     * BiObservable to a single-valued Observable.  
+     * 
+     * @param biOperator a function to adapt the types and semantics of the downstream operator. 
+     * @return a new {@link BiObservable} with a {@link BiOnSubscribe onSubscribeFunc} that subscribes to {@code this}. 
+     */
     public <R> Observable<? extends R> lift(final BiOperator<? extends R, ? super T0, ? super T1> biOperator) {
         return Observable.create(new OnSubscribe<R>() {
             @Override
             public void call(Subscriber<? super R> child) {
-                f.call(biOperator.call(child));
+                onSubscribeFunc.call(biOperator.wrapDualToSingle(child));
             }
         });
     }
-
-    public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Func1<? super T0, ? extends T1> f) {
-        return create(new BiOnSubscribe<T0, T1>() {
-            @Override
-            public void call(DualSubscriber<? super T0, ? super T1> subscriber) {
-                ob0.unsafeSubscribe(new Subscriber<T0>() {
-                    @Override
-                    public void onCompleted() {
-                        subscriber.onComplete();
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        subscriber.onError(e);
-                    }
-
-                    @Override
-                    public void onNext(T0 t0) {
-                        try {
-                            T1 t1 = f.call(t0);
-                            subscriber.onNext(t0, t1);
-                        } catch(Throwable e) {
-                            subscriber.onError(e);
-                        }
-                    }
-                });
-            }
-        });
+    
+    /**
+     * Create a new {@link Observable} that defers the subscription of {@code obs} with a {@link Subscriber subscriber} that applies 
+     * the given operator's effect to values produced when subscribed to. This overload of {@code lift} converts a single-valued 
+     * Observable to a two-valued {@link BiObservable}.
+     *   
+     * @param obs the producer subscribed to.
+     * @param op a function to adapt the types and semantics of the downstream operator to {@code obs}.
+     * @return
+     */
+    public static <R0, R1, T> BiObservable<R0, R1> lift(Observable<? extends T> obs, SingleToDualOperator<R0, R1, T> op) {
+    	return new BiObservable<R0, R1>(new BiOnSubscribe<R0, R1>(){
+			@Override
+			public void call(DualSubscriber<? super R0, ? super R1> subscriber) {
+				obs.unsafeSubscribe(op.wrapSingleToDual(subscriber));
+			}
+    	});
+    }
+    
+    /**
+     * Converts an Observable to a BiObservable by applying a function to generate a second value based on the values produced by the 
+     * {@code observable}.
+     * 
+     * @param observable the producer.
+     * @param generatorFunc ran once per call made to onNext to produce the paired BiObservable's second value.
+     * @return a BiObservable encapsulating the subscription to the given {@code observable}.
+     */
+    public static <T0, T1> BiObservable<T0, T1> generate(final Observable<? extends T0> observable, final Func1<? super T0, ? extends T1> generatorFunc) {
+    	return BiObservable.lift(observable, new OperatorGenerate<T0, T1>(generatorFunc));        
     }
 
+    /**
+     * Creates a BiObservable by zipping two observables. Each value produced by the returned BiObservable is the pair of each value 
+     * emitted by the given observables.
+     * 
+     * @param ob0 the first observable
+     * @param ob1 the second observable
+     * @return a BiObservable encapsulating the subscription to both observables
+     */
     public static <T0, T1> BiObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new BiOnSubscribe<T0, T1>() {
             @Override
-            public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
-                subscriber.add(Observable.zip(ob0, ob1, new Func2<T0, T1, Void>() {
+            public void call(final DualSubscriber<? super T0, ? super T1> child) {
+                child.add(Observable.zip(ob0, ob1, new Func2<T0, T1, Void>() {
                     @Override
                     public Void call(T0 t0, T1 t1) {
-                        subscriber.onNext(t0, t1);
+                        child.onNext(t0, t1);
                         return null;
                     }
                 }).subscribe(new Observer<Void>() {
                     @Override
                     public void onCompleted() {
-                        subscriber.onComplete();
+                        child.onComplete();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        subscriber.onError(e);
+                        child.onError(e);
                     }
 
                     @Override
@@ -111,25 +197,30 @@ public class BiObservable<T0, T1> {
         });
     }
 
+    /**
+     * @param ob0
+     * @param ob1
+     * @return
+     */
     public static final <T0, T1> BiObservable<T0, T1> combineLatest(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new BiOnSubscribe<T0, T1>() {
             @Override
-            public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
-                subscriber.add(Observable.combineLatest(ob0, ob1, new Func2<T0, T1, Void>() {
+            public void call(final DualSubscriber<? super T0, ? super T1> child) {
+                child.add(Observable.combineLatest(ob0, ob1, new Func2<T0, T1, Void>() {
                     @Override
                     public Void call(T0 t0, T1 t1) {
-                        subscriber.onNext(t0, t1);
+                        child.onNext(t0, t1);
                         return null;
                     }
                 }).subscribe(new Observer<Void>() {
                     @Override
                     public void onCompleted() {
-                        subscriber.onComplete();
+                        child.onComplete();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        subscriber.onError(e);
+                        child.onError(e);
                     }
 
                     @Override
@@ -140,17 +231,22 @@ public class BiObservable<T0, T1> {
         });
     }
 
+    /**
+     * @param ob0
+     * @param ob1
+     * @return
+     */
     public static <T0, T1> BiObservable<T0, T1> product(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new BiOnSubscribe<T0, T1>() {
             @Override
-            public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
-                subscriber.add(ob0.flatMap(new Func1<T0, Observable<Void>>() {
+            public void call(final DualSubscriber<? super T0, ? super T1> child) {
+                child.add(ob0.flatMap(new Func1<T0, Observable<Void>>() {
                     @Override
                     public Observable<Void> call(final T0 t0) {
                         return ob1.map(new Func1<T1, Void>() {
                             @Override
                             public Void call(T1 t1) {
-                                subscriber.onNext(t0, t1);
+                                child.onNext(t0, t1);
                                 return null;
                             }
                         });
@@ -158,12 +254,12 @@ public class BiObservable<T0, T1> {
                 }).subscribe(new Observer<Void>() {
                     @Override
                     public void onCompleted() {
-                        subscriber.onComplete();
+                        child.onComplete();
                     }
 
                     @Override
                     public void onError(Throwable e) {
-                        subscriber.onError(e);
+                        child.onError(e);
                     }
 
                     @Override
@@ -174,6 +270,11 @@ public class BiObservable<T0, T1> {
         });
     }
 
+    /**
+     * @param ob0
+     * @param func
+     * @return
+     */
     public static <T0, T1> BiObservable<T0, T1> sparseProduct(final Observable<? extends T0> ob0, final Func1<? super T0, Observable<T1>> func) {
         return create(new BiOnSubscribe<T0, T1>() {
             @Override
@@ -208,59 +309,41 @@ public class BiObservable<T0, T1> {
         });
     }
 
+    /**
+     * @param i0
+     * @param ob1
+     * @return
+     */
     public static <T0, T1> BiObservable<T0, T1> product(T0 i0, Observable<? extends T1> ob1) {
         return product(Observable.just(i0), ob1);
     }
 
-    private static class Const1<S0, S1> implements Func2<S0, S1, S0> {
-        @Override
-        public S0 call(S0 first, S1 second) {
-            return first;
-        }
-    };
-
-    private static class Const2<S0, S1> implements Func2<S0, S1, S1> {
-        @Override
-        public S1 call(S0 first, S1 second) {
-            return second;
-        }
-    };
-
-    private <R0, R1> BiObservable<R0, R1> transform(final Func2<? super T0, ? super T1, ? extends R0> func0, final Func2<? super T0, ? super T1, ? extends R1> func1) {
-        return lift(new DualOperator<R0, R1, T0, T1>() {
-            @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super R0, ? super R1> child) {
-                return new DualSubscriber<T0, T1>(child) {
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        child.onNext(func0.call(t0, t1), func1.call(t0, t1));
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        child.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        child.onComplete();
-                    }
-                };
-            }
-        });
+    /**
+     * @param ob0
+     * @param i1
+     * @return
+     */
+    public static <T0, T1> BiObservable<T0, T1> product(Observable<? extends T0> ob0, T1 i1) {
+        return product(ob0, Observable.just(i1));
     }
 
-    public <R> BiObservable<? extends R, ? extends T1> mapFirst(final Func2<? super T0, ? super T1, ? extends R> func) {
-        return transform(func, new Const2<T0, T1>());
+    /**
+     * Returns a BiObservable that subscribes to {@code this} and applies the given {@code func} to the pair of values then replaces 
+     * the first value with the results of the func. 
+     * 
+     * @param func the transformation function
+     * @return the new value
+     */
+    public <R> BiObservable<? extends R, ? extends T1> map1(final Func2<? super T0, ? super T1, ? extends R> func) {
+        return lift(OperatorMapDual.dualMap1Operator(func));
     }
 
-    public <R> BiObservable<? extends R, ? extends T1> mapFirst(final Func1<? super T0, ? extends R> func) {
-        return transform(new Func2<T0, T1, R>() {
-            @Override
-            public R call(T0 t0, T1 t1) {
-                return func.call(t0);
-            }
-        }, new Const2<T0, T1>());
+    /**
+     * @param func
+     * @return
+     */
+    public <R> BiObservable<? extends R, ? extends T1> map1(final Func1<? super T0, ? extends R> func) {
+    	return lift(OperatorMapDual.singleMap1Operator(func));
     }
 
     // for TriObservable we'll need many combinations of flatten
@@ -281,118 +364,59 @@ public class BiObservable<T0, T1> {
     // <a,b,c,d> -> <r,c>
     // <a,b,c,d> -> <r,d>
     // <a,b,c,d> -> <r>
+    /**
+     * @param func
+     * @return
+     */
     public <R> Observable<? extends R> bimap(final Func2<? super T0, ? super T1, ? extends R> func) {
-        return lift(new BiOperator<R, T0, T1>() {
-
-            @Override
-            public BiSubscriber<? super T0, ? super T1> call(final Subscriber<? super R> child) {
-                return new BiSubscriber<T0, T1>(child) {
-
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        child.onNext(func.call(t0, t1));
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        child.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        child.onCompleted();
-                    }
-                };
-            }
-        });
+        return lift(new OperatorBiMap<R, T0, T1>(func));
     }
 
+    /**
+     * @param action
+     * @return
+     */
     public BiObservable<T0, T1> doOnNext(final Action2<? super T0, ? super T1> action) {
-        return lift(new DualOperator<T0, T1, T0, T1>() {
-
-            @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super T0, ? super T1> child) {
-                return new DualSubscriber<T0, T1>(child) {
-
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        action.call(t0, t1);
-                        child.onNext(t0, t1);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        child.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        child.onComplete();
-                    }
-                };
-            }
-        });
+        return lift(OperatorDoOnNextDual.dualActionOperator(action));
     }
 
-    public BiObservable<T0, T1> doOnNextFirst(final Action1<? super T0> action) {
-        return lift(new DualOperator<T0, T1, T0, T1>() {
-
-            @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super T0, ? super T1> child) {
-                return new DualSubscriber<T0, T1>(child) {
-
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        action.call(t0);
-                        child.onNext(t0, t1);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        child.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        child.onComplete();
-                    }
-                };
-            }
-        });
+    /**
+     * @param action
+     * @return
+     */
+    public BiObservable<T0, T1> doOnNext1(final Action1<? super T0> action) {
+        return lift(OperatorDoOnNextDual.singleAction1Operator(action));
     }
 
-    public BiObservable<T0, T1> doOnNextSecond(final Action1<? super T1> action) {
-        return lift(new DualOperator<T0, T1, T0, T1>() {
-
-            @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super T0, ? super T1> child) {
-                return new DualSubscriber<T0, T1>(child) {
-
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        action.call(t1);
-                        child.onNext(t0, t1);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        child.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        child.onComplete();
-                    }
-                };
-            }
-        });
+    /**
+     * @param action
+     * @return
+     */
+    public BiObservable<T0, T1> doOnNext2(final Action1<? super T1> action) {
+        return lift(OperatorDoOnNextDual.singleAction2Operator(action));
+    }
+    
+    public <R> BiObservable<R, T1> scan1(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
+    	return lift(new OperatorScan1<T0, T1, R>(seed, func));
+    }
+    
+    public BiObservable<T0, T1> takeLast() {
+    	return lift(new OperatorTakeLast2<T0, T1>());
     }
 
-    public BiObservable<T0, T1> reduceFirst(final Func3<T0, ? super T0, ? super T1, T0> func) {
+    public <R> BiObservable<R, T1> reduce1_(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
+    	return scan1(seed, func).takeLast();
+	}
+
+    /**
+     * @param func
+     * @return
+     */
+    public BiObservable<T0, T1> reduce1(final Func3<T0, ? super T0, ? super T1, T0> func) {
         return lift(new DualOperator<T0, T1, T0, T1>() {
 
             @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super T0, ? super T1> subscriber) {
+            public DualSubscriber<? super T0, ? super T1> wrapDual(final DualSubscriber<? super T0, ? super T1> subscriber) {
                 final Map<T1, T0> seeds = new HashMap<T1, T0>();
 
                 return new DualSubscriber<T0, T1>(subscriber) {
@@ -418,17 +442,22 @@ public class BiObservable<T0, T1> {
         });
     }
 
-    public <R> BiObservable<R, T1> reduceFirst(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
+    /**
+     * @param seed
+     * @param func
+     * @return
+     */
+    public <R> BiObservable<R, T1> reduce1(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
         return lift(new DualOperator<R, T1, T0, T1>() {
             @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super R, ? super T1> subscriber) {
+            public DualSubscriber<? super T0, ? super T1> wrapDual(final DualSubscriber<? super R, ? super T1> subscriber) {
                 final Map<T1, R> seeds = new HashMap<T1, R>();
 
                 return new DualSubscriber<T0, T1>(subscriber) {
                     @Override
                     public void onNext(T0 t0, T1 t1) {
                         R seed = seeds.get(t1);
-                        seeds.put(t1, (seed == null) ? func.call(seed, t0, t1) : func.call(seed, t0, t1));
+                        seeds.put(t1, func.call(seed, t0, t1));
                     }
 
                     @Override
@@ -447,73 +476,27 @@ public class BiObservable<T0, T1> {
         });
     }
 
-    /*
-    public <R> BiObservable<R, T1> composeFirst(final Func2<Observable<T0>, T1, Observable<R>> func) {
-        return lift(new DualOperator<R, T1, T0, T1>() {
-            @Override
-            public DualSubscriber<? super T0, ? super T1> call(final DualSubscriber<? super R, ? super T1> subscriber) {
-                final Map<T1, PublishSubject<T0>> foo = new HashMap<T1, PublishSubject<T0>>();
-
-                return new DualSubscriber<T0, T1>() {
-                    @Override
-                    public void onNext(T0 t0, final T1 t1) {
-                        PublishSubject<T0> subject = foo.get(t1);
-
-                        if (subject == null) {
-                            subject = PublishSubject.<T0> create();
-                            foo.put(t1, subject);
-                            func.call(subject, t1).subscribe(new Subscriber<R>() {
-                                @Override
-                                public void onCompleted() {
-                                    // TODO
-                                }
-
-                                @Override
-                                public void onError(Throwable e) {
-                                    // TODO Auto-generated method stub
-                                }
-
-                                @Override
-                                public void onNext(R r) {
-                                    subscriber.onNext(r, t1);
-                                }
-                            });
-                        }
-
-                        subject.onNext(t0);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        // TODO Auto-generated method stub
-
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        // TODO Auto-generated method stub
-
-                    }
-                };
-            }
-        });
-    }
-    */
-
-    public <R> BiObservable<T0, R> mapSecond(Func2<? super T0, ? super T1, ? extends R> func) {
-        return transform(new Const1<T0, T1>(), func);
+    /**
+     * @param func
+     * @return
+     */
+    public <R> BiObservable<T0, R> map2(Func2<? super T0, ? super T1, ? extends R> func) {
+        return lift(OperatorMapDual.dualMap2Operator(func));
     }
 
-    public <R> BiObservable<T0, R> mapSecond(final Func1<? super T1, ? extends R> func) {
-        return transform(new Const1<T0, T1>(), new Func2<T0, T1, R>() {
-            @Override
-            public R call(T0 t0, T1 t1) {
-                return func.call(t1);
-            }
-        });
+    /**
+     * @param func
+     * @return
+     */
+    public <R> BiObservable<T0, R> map2(final Func1<? super T1, ? extends R> func) {
+        return lift(OperatorMapDual.singleMap2Operator(func));
     }
 
-    private static <T0, T1, R> Func2<T1, T0, R> flip(final Func2<? super T0, ? super T1, ? extends R> func) {
+    /**
+     * @param func
+     * @return
+     */
+    public static <T0, T1, R> Func2<T1, T0, R> flip(final Func2<? super T0, ? super T1, ? extends R> func) {
         return new Func2<T1, T0, R>() {
             @Override
             public R call(T1 t1, T0 t0) {
@@ -522,28 +505,11 @@ public class BiObservable<T0, T1> {
         };
     }
 
+    /**
+     * @return
+     */
     public BiObservable<? extends T1, ? extends T0> flip() {
-        return lift(new DualOperator<T1, T0, T0, T1>() {
-            @Override
-            public DualSubscriber<T0, T1> call(final DualSubscriber<? super T1, ? super T0> child) {
-                return new DualSubscriber<T0, T1>(child) {
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        child.onNext(t1, t0);
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        child.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        child.onComplete();
-                    }
-                };
-            }
-        });
+        return lift(new OperatorFlip<T0, T1>());
     }
 
 }
