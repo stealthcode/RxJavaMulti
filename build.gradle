@@ -4,6 +4,7 @@ buildscript {
 }
 
 apply plugin: 'rxjava-project'
+apply plugin: 'java'
 
 sourceCompatibility = '1.8'
 
