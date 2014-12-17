@@ -14,11 +14,9 @@ import rx.internal.operators.OperatorBiMap;
 import rx.internal.operators.OperatorDoOnNextDual;
 import rx.internal.operators.OperatorFlip;
 import rx.internal.operators.OperatorGenerate;
+import rx.internal.operators.OperatorMapDual;
 import rx.internal.operators.OperatorScan1;
 import rx.internal.operators.OperatorTakeLast2;
-import rx.internal.operators.OperatorMapDual;
-import rx.internal.types.Const1;
-import rx.internal.types.Const2;
 
 public class BiObservable<T0, T1> {
     private BiOnSubscribe<T0, T1> onSubscribeFunc;

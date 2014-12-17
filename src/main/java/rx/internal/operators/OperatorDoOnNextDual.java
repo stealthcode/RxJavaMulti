@@ -12,6 +12,7 @@ public class OperatorDoOnNextDual<T0, T1> implements DualOperator<T0, T1, T0, T1
 			@Override
 			public void onNext(T0 t0, T1 t1) {
 				action1.call(t0);
+				getChild().onNext(t0, t1);
 			}
 		});
 	}
@@ -21,6 +22,7 @@ public class OperatorDoOnNextDual<T0, T1> implements DualOperator<T0, T1, T0, T1
 			@Override
 			public void onNext(T0 t0, T1 t1) {
 				action2.call(t1);
+				getChild().onNext(t0, t1);
 			}
 		});
 	}
@@ -30,12 +32,17 @@ public class OperatorDoOnNextDual<T0, T1> implements DualOperator<T0, T1, T0, T1
 			@Override
 			public void onNext(T0 t0, T1 t1) {
 				action.call(t0, t1);
+				getChild().onNext(t0, t1);
 			}
 		});
 	}
 	
 	private static abstract class OnNextSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
 		private DualSubscriber<? super T0, ? super T1> child;
+		
+		public DualSubscriber<? super T0, ? super T1> getChild() {
+			return child;
+		}
 		
 		public void setChild(DualSubscriber<? super T0, ? super T1> child) {
 			this.child = child;
