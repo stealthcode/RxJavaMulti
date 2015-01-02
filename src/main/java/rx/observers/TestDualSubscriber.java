@@ -7,7 +7,6 @@ import java.util.concurrent.TimeUnit;
 import rx.DualObserver;
 import rx.DualSubscriber;
 import rx.Notification;
-import rx.Observer;
 import rx.Subscriber;
 
 public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
@@ -46,7 +45,8 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
     }
 
     /**
-     * Notifies the Subscriber that the {@code Observable} has finished sending push-based notifications.
+     * Notifies the Subscriber that the {@code Observable} has finished sending push-based
+     * notifications.
      * <p>
      * The {@code Observable} will not call this method if it calls {@link #onError}.
      */
@@ -61,12 +61,13 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
     }
 
     /**
-     * Get the {@link Notification}s representing each time this {@link Subscriber} was notified of sequence
-     * completion via {@link #onCompleted}, as a {@link List}.
+     * Get the {@link Notification}s representing each time this {@link Subscriber} was notified of
+     * sequence completion via {@link #onCompleted}, as a {@link List}.
      *
-     * @return a list of Notifications representing calls to this Subscriber's {@link #onCompleted} method
+     * @return a list of Notifications representing calls to this Subscriber's {@link #onCompleted}
+     *         method
      */
-    public List<Notification<T>> getOnCompletedEvents() {
+    public List<DualNotification<T0, T1>> getOnCompletedEvents() {
         return testObserver.getOnCompletedEvents();
     }
 
@@ -77,7 +78,7 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * {@link #onCompleted}.
      * 
      * @param e
-     *          the exception encountered by the Observable
+     *            the exception encountered by the Observable
      */
     @Override
     public void onError(Throwable e) {
@@ -93,7 +94,8 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * Get the {@link Throwable}s this {@link Subscriber} was notified of via {@link #onError} as a
      * {@link List}.
      *
-     * @return a list of the Throwables that were passed to this Subscriber's {@link #onError} method
+     * @return a list of the Throwables that were passed to this Subscriber's {@link #onError}
+     *         method
      */
     public List<Throwable> getOnErrorEvents() {
         return testObserver.getOnErrorEvents();
@@ -104,23 +106,25 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * <p>
      * The {@code Observable} may call this method 0 or more times.
      * <p>
-     * The {@code Observable} will not call this method again after it calls either {@link #onCompleted} or
-     * {@link #onError}.
+     * The {@code Observable} will not call this method again after it calls either
+     * {@link #onCompleted} or {@link #onError}.
      * 
      * @param t
-     *          the item emitted by the Observable
+     *            the item emitted by the Observable
      */
     @Override
     public void onNext(T0 t0, T1 t1) {
         lastSeenThread = Thread.currentThread();
         testObserver.onNext(t0, t1);
     }
-    
+
     /**
      * Allow calling the protected {@link #request(long)} from unit tests.
      *
-     * @param n the maximum number of items you want the Observable to emit to the Subscriber at this time, or
-     *           {@code Long.MAX_VALUE} if you want the Observable to emit items at its own pace
+     * @param n
+     *            the maximum number of items you want the Observable to emit to the Subscriber at
+     *            this time, or {@code Long.MAX_VALUE} if you want the Observable to emit items at
+     *            its own pace
      */
     public void requestMore(long n) {
         request(n);
@@ -131,7 +135,7 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      *
      * @return a list of items observed by this Subscriber, in the order in which they were observed
      */
-    public List<T> getOnNextEvents() {
+    public List<TestEvent<T0, T1>> getOnNextEvents() {
         return testObserver.getOnNextEvents();
     }
 
@@ -139,19 +143,20 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * Assert that a particular sequence of items was received by this {@link Subscriber} in order.
      *
      * @param items
-     *          the sequence of items expected to have been observed
+     *            the sequence of items expected to have been observed
      * @throws AssertionError
-     *          if the sequence of items observed does not exactly match {@code items}
+     *             if the sequence of items observed does not exactly match {@code items}
      */
-    public void assertReceivedOnNext(List<T> items) {
+    public void assertReceivedOnNext(List<TestEvent<T0, T1>> items) {
         testObserver.assertReceivedOnNext(items);
     }
 
     /**
-     * Assert that a single terminal event occurred, either {@link #onCompleted} or {@link #onError}.
+     * Assert that a single terminal event occurred, either {@link #onCompleted} or {@link #onError}
+     * .
      *
      * @throws AssertionError
-     *          if not exactly one terminal event notification was received
+     *             if not exactly one terminal event notification was received
      */
     public void assertTerminalEvent() {
         testObserver.assertTerminalEvent();
@@ -161,7 +166,7 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * Assert that this {@code Subscriber} is unsubscribed.
      *
      * @throws AssertionError
-     *          if this {@code Subscriber} is not unsubscribed
+     *             if this {@code Subscriber} is not unsubscribed
      */
     public void assertUnsubscribed() {
         if (!isUnsubscribed()) {
@@ -173,23 +178,24 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * Assert that this {@code Subscriber} has received no {@code onError} notifications.
      * 
      * @throws AssertionError
-     *          if this {@code Subscriber} has received one or more {@code onError} notifications
+     *             if this {@code Subscriber} has received one or more {@code onError} notifications
      */
     public void assertNoErrors() {
         if (getOnErrorEvents().size() > 0) {
             // can't use AssertionError because (message, cause) doesn't exist until Java 7
-            throw new RuntimeException("Unexpected onError events: " + getOnErrorEvents().size(), getOnErrorEvents().get(0));
-            // TODO possibly check for Java7+ and then use AssertionError at runtime (since we always compile with 7)
+            throw new RuntimeException("Unexpected onError events: " + getOnErrorEvents()
+                    .size(), getOnErrorEvents().get(0));
+            // TODO possibly check for Java7+ and then use AssertionError at runtime (since we
+            // always compile with 7)
         }
     }
 
-    
     /**
-     * Blocks until this {@link Subscriber} receives a notification that the {@code Observable} is complete
-     * (either an {@code onCompleted} or {@code onError} notification).
+     * Blocks until this {@link Subscriber} receives a notification that the {@code Observable} is
+     * complete (either an {@code onCompleted} or {@code onError} notification).
      *
      * @throws RuntimeException
-     *          if the Subscriber is interrupted before the Observable is able to complete
+     *             if the Subscriber is interrupted before the Observable is able to complete
      */
     public void awaitTerminalEvent() {
         try {
@@ -200,15 +206,16 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
     }
 
     /**
-     * Blocks until this {@link Subscriber} receives a notification that the {@code Observable} is complete
-     * (either an {@code onCompleted} or {@code onError} notification), or until a timeout expires.
+     * Blocks until this {@link Subscriber} receives a notification that the {@code Observable} is
+     * complete (either an {@code onCompleted} or {@code onError} notification), or until a timeout
+     * expires.
      *
      * @param timeout
-     *          the duration of the timeout
+     *            the duration of the timeout
      * @param unit
-     *          the units in which {@code timeout} is expressed
+     *            the units in which {@code timeout} is expressed
      * @throws RuntimeException
-     *          if the Subscriber is interrupted before the Observable is able to complete
+     *             if the Subscriber is interrupted before the Observable is able to complete
      */
     public void awaitTerminalEvent(long timeout, TimeUnit unit) {
         try {
@@ -219,15 +226,15 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
     }
 
     /**
-     * Blocks until this {@link Subscriber} receives a notification that the {@code Observable} is complete
-     * (either an {@code onCompleted} or {@code onError} notification), or until a timeout expires; if the
-     * Subscriber is interrupted before either of these events take place, this method unsubscribes the
-     * Subscriber from the Observable).
+     * Blocks until this {@link Subscriber} receives a notification that the {@code Observable} is
+     * complete (either an {@code onCompleted} or {@code onError} notification), or until a timeout
+     * expires; if the Subscriber is interrupted before either of these events take place, this
+     * method unsubscribes the Subscriber from the Observable).
      *
      * @param timeout
-     *          the duration of the timeout
+     *            the duration of the timeout
      * @param unit
-     *          the units in which {@code timeout} is expressed
+     *            the units in which {@code timeout} is expressed
      */
     public void awaitTerminalEventAndUnsubscribeOnTimeout(long timeout, TimeUnit unit) {
         try {
@@ -241,11 +248,10 @@ public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
      * Returns the last thread that was in use when an item or notification was received by this
      * {@link Subscriber}.
      *
-     * @return the {@code Thread} on which this Subscriber last received an item or notification from the
-     *         Observable it is subscribed to
+     * @return the {@code Thread} on which this Subscriber last received an item or notification
+     *         from the Observable it is subscribed to
      */
     public Thread getLastSeenThread() {
         return lastSeenThread;
     }
 }
-
