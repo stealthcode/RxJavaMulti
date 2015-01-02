@@ -230,9 +230,13 @@ public class BiObservable<T0, T1> {
     }
 
     /**
+     * Creates a BiObservable that emits one pair of elements for each combination of the elements 
+     * emitted by the observables passed as parameters. This produces the Cartesian product of all
+     * emitted elements from two observables. 
+     * 
      * @param ob0
      * @param ob1
-     * @return
+     * @return a BiObservable that produces the Cartesian product of 
      */
     public static <T0, T1> BiObservable<T0, T1> product(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new BiOnSubscribe<T0, T1>() {
@@ -308,37 +312,46 @@ public class BiObservable<T0, T1> {
     }
 
     /**
+     * Attaches an instance as the paired item to each element emitted from the observable. 
+     * 
      * @param i0
      * @param ob1
      * @return
      */
-    public static <T0, T1> BiObservable<T0, T1> product(T0 i0, Observable<? extends T1> ob1) {
+    public static <T0, T1> BiObservable<T0, T1> attach(T0 i0, Observable<? extends T1> ob1) {
         return product(Observable.just(i0), ob1);
     }
 
     /**
+     * Attaches an instance as the paired item to each element emitted from the observable. 
+     * 
      * @param ob0
      * @param i1
      * @return
      */
-    public static <T0, T1> BiObservable<T0, T1> product(Observable<? extends T0> ob0, T1 i1) {
+    public static <T0, T1> BiObservable<T0, T1> attach(Observable<? extends T0> ob0, T1 i1) {
         return product(ob0, Observable.just(i1));
     }
 
     /**
-     * Returns a BiObservable that subscribes to {@code this} and applies the given {@code func} to the pair of values then replaces 
-     * the first value with the results of the func. 
+     * Returns a BiObservable that applies a specified function to each pair of items emitted by the source BiObservable 
+     * and emits the results of these function applications, replacing the second item with the results. This overload 
+     * accepts a Func2 that will receive both items emitted by the BiObservable as arguments.
      * 
-     * @param func the transformation function
-     * @return the new value
+     * @param func the function used to produce the new value.
+     * @return a BiObservable which transforms the first item emitted using the specified function.
      */
     public <R> BiObservable<? extends R, ? extends T1> map1(final Func2<? super T0, ? super T1, ? extends R> func) {
         return lift(OperatorMapDual.dualMap1Operator(func));
     }
 
     /**
-     * @param func
-     * @return
+     * Returns a BiObservable that applies a specified function to each pair of items emitted by the source BiObservable 
+     * and emits the results of these function applications, replacing the second item with the results. This overload 
+     * accepts a Func1 that will receive the first item emitted by the BiObservable as an argument. 
+     * 
+     * @param func the function used to produce the new value.
+     * @return a BiObservable which transforms the first item emitted using the specified function.
      */
     public <R> BiObservable<? extends R, ? extends T1> map1(final Func1<? super T0, ? extends R> func) {
     	return lift(OperatorMapDual.singleMap1Operator(func));
@@ -363,8 +376,12 @@ public class BiObservable<T0, T1> {
     // <a,b,c,d> -> <r,d>
     // <a,b,c,d> -> <r>
     /**
-     * @param func
-     * @return
+     * Returns a BiObservable that applies a specified function to each pair of items emitted by the source BiObservable 
+     * and emits the results of these function applications, replacing the emitted values with the result from the 
+     * specified function. 
+     * 
+     * @param func the function used to produce the new value.
+     * @return an Observable which transforms the pair of items emitted using the specified function.
      */
     public <R> Observable<? extends R> bimap(final Func2<? super T0, ? super T1, ? extends R> func) {
         return lift(new OperatorBiMap<R, T0, T1>(func));
@@ -394,14 +411,27 @@ public class BiObservable<T0, T1> {
         return lift(OperatorDoOnNextDual.singleAction2Operator(action));
     }
     
+    /**
+     * @param seed
+     * @param func
+     * @return
+     */
     public <R> BiObservable<R, T1> scan1(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
     	return lift(new OperatorScan1<T0, T1, R>(seed, func));
     }
     
+    /**
+     * @return
+     */
     public BiObservable<T0, T1> takeLast() {
     	return lift(new OperatorTakeLast2<T0, T1>());
     }
 
+    /**
+     * @param seed
+     * @param func
+     * @return
+     */
     public <R> BiObservable<R, T1> reduce1_(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
     	return scan1(seed, func).takeLast();
 	}
@@ -475,16 +505,24 @@ public class BiObservable<T0, T1> {
     }
 
     /**
-     * @param func
-     * @return
+     * Returns a BiObservable that applies a specified function to each pair of items emitted by the source BiObservable 
+     * and emits the results of these function applications, replacing the second item with the results. This overload 
+     * accepts a Func2 that will receive both items emitted by the BiObservable as arguments.
+     * 
+     * @param func the function used to produce the new value.
+     * @return a BiObservable which transforms the second item emitted using the specified function.
      */
     public <R> BiObservable<T0, R> map2(Func2<? super T0, ? super T1, ? extends R> func) {
         return lift(OperatorMapDual.dualMap2Operator(func));
     }
 
     /**
-     * @param func
-     * @return
+     * Returns a BiObservable that applies a specified function to each pair of items emitted by the source BiObservable 
+     * and emits the results of these function applications, replacing the second item with the results. This overload 
+     * accepts a Func1 that will receive the second item emitted by the BiObservable as an argument. 
+     * 
+     * @param func the function used to produce the new value.
+     * @return a BiObservable which transforms the second item emitted using the specified function.
      */
     public <R> BiObservable<T0, R> map2(final Func1<? super T1, ? extends R> func) {
         return lift(OperatorMapDual.singleMap2Operator(func));
