@@ -273,26 +273,29 @@ public class BiObservable<T0, T1> {
     }
 
     /**
+     * Creates a BiObservable from an observable and a non-deterministic-arity generator function. This emits 
+     * a pair of each generatorFunc's output element with the input it was obtained from. Note that if the 
+     * generatorFunc produces an "empty" observable then no pairs will be emitted for that input element.  
+     * 
      * @param ob0
-     * @param func
-     * @return
+     * @param generatorFunc
+     * @return a BiObservable that 
      */
-    public static <T0, T1> BiObservable<T0, T1> sparseProduct(final Observable<? extends T0> ob0, final Func1<? super T0, Observable<T1>> func) {
+    public static <T0, T1> BiObservable<T0, T1> sparseProduct(final Observable<? extends T0> ob0, final Func1<? super T0, Observable<T1>> generatorFunc) {
         return create(new BiOnSubscribe<T0, T1>() {
             @Override
             public void call(final DualSubscriber<? super T0, ? super T1> subscriber) {
-                subscriber.add(ob0.flatMap(new Func1<T0, Observable<Void>>() {
+                subscriber.add(ob0.flatMap(new Func1<T0, Observable<T1>>() {
                     @Override
-                    public Observable<Void> call(final T0 t0) {
-                        return func.call(t0).map(new Func1<T1, Void>() {
+                    public Observable<T1> call(final T0 t0) {
+                        return generatorFunc.call(t0).doOnNext(new Action1<T1>() {
                             @Override
-                            public Void call(T1 t1) {
+                            public void call(T1 t1) {
                                 subscriber.onNext(t0, t1);
-                                return null;
                             }
                         });
                     }
-                }).subscribe(new Observer<Void>() {
+                }).subscribe(new Observer<T1>() {
                     @Override
                     public void onCompleted() {
                         subscriber.onComplete();
@@ -304,7 +307,7 @@ public class BiObservable<T0, T1> {
                     }
 
                     @Override
-                    public void onNext(Void t) {
+                    public void onNext(T1 t) {
                     }
                 }));
             }
