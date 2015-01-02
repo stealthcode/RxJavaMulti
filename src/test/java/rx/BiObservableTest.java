@@ -9,46 +9,47 @@ public class BiObservableTest {
     @Test
     public void exampleOfUsage() {
         Observable<Stage1> ops = Observable.range(0, 10)
-        		.map(id -> new Stage1(id, "args"));
+                .map(id -> new Stage1(id, "args"));
 
-        BiObservable.generate(ops, stage1 -> new OperationLogger(stage1.getId()))
-	        .map1((stage1, logger) -> {
-	            try {
-	                logger.log("Starting stage1");
-	                Stage2 stage2 = Stage2.advance(stage1);
-	                logger.log("Ending stage1");
-	                return stage2;
-	            } catch (Exception e) {
-	                logger.logException("Exception in Stage1", e);
-	                throw new RuntimeException("Stage1 failed for operation " + stage1.getId(), e);
-	            }
-	        }).map2((logger) -> {
-	            logger.dumpLog(new File("/tmp/pipeline/log.txt"));
-	            return new OutputWriter();
-	        }).map1((stage2, writer) -> {
-	            String content = stage2.getContent();
-	            writer.write(content);
-	            return content;
-	        }).subcribe(new DualSubscriber<String, OutputWriter>() {
-	            @Override
-	            public void onNext(String content, OutputWriter writer) {
-	                Objects.requireNonNull(writer);
-	                Objects.requireNonNull(content);
-	                System.out.println("Finished operation");
-	            }
-	
-	            @Override
-	            public void onError(Throwable e) {
-	                Objects.requireNonNull(e);
-	                System.out.println("Error");
-	                e.printStackTrace();
-	            }
-	
-	            @Override
-	            public void onComplete() {
-	                System.out.println("Completed pipeline");
-	            }
-	        });
+        BiObservable
+                .generate(ops, stage1 -> new OperationLogger(stage1.getId()))
+                .map1((stage1, logger) -> {
+                    try {
+                        logger.log("Starting stage1");
+                        Stage2 stage2 = Stage2.advance(stage1);
+                        logger.log("Ending stage1");
+                        return stage2;
+                    } catch (Exception e) {
+                        logger.logException("Exception in Stage1", e);
+                        throw new RuntimeException("Stage1 failed for operation " + stage1.getId(), e);
+                    }
+                }).map2((logger) -> {
+                    logger.dumpLog(new File("/tmp/pipeline/log.txt"));
+                    return new OutputWriter();
+                }).map1((stage2, writer) -> {
+                    String content = stage2.getContent();
+                    writer.write(content);
+                    return content;
+                }).subcribe(new DualSubscriber<String, OutputWriter>() {
+                    @Override
+                    public void onNext(String content, OutputWriter writer) {
+                        Objects.requireNonNull(writer);
+                        Objects.requireNonNull(content);
+                        System.out.println("Finished operation");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Objects.requireNonNull(e);
+                        System.out.println("Error");
+                        e.printStackTrace();
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        System.out.println("Completed pipeline");
+                    }
+                });
     }
 
     private static class Stage1 {
@@ -80,9 +81,9 @@ public class BiObservableTest {
 
         private static Stage2 advance(Stage1 stage1) throws Exception {
             /*
-            if (System.currentTimeMillis() % 3 == 0)
-                throw new Exception("Unlucky roll. Tough break pal.");
-                */
+             * if (System.currentTimeMillis() % 3 == 0) throw new
+             * Exception("Unlucky roll. Tough break pal.");
+             */
             int id = stage1.getId();
             String content = "(" + stage1.getContent() + ")";
             return new Stage2(id, content);

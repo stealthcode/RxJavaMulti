@@ -9,11 +9,11 @@ public class OperatorBiMap<R, T0, T1> implements BiOperator<R, T0, T1> {
 
     private Func2<? super T0, ? super T1, ? extends R> func;
 
-	public OperatorBiMap(Func2<? super T0, ? super T1, ? extends R> func) {
-		this.func = func;
-	}
+    public OperatorBiMap(Func2<? super T0, ? super T1, ? extends R> func) {
+        this.func = func;
+    }
 
-	@Override
+    @Override
     public BiSubscriber<? super T0, ? super T1> wrapDualToSingle(final Subscriber<? super R> child) {
         return new BiSubscriber<T0, T1>(child) {
 
