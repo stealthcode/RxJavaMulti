@@ -2,23 +2,28 @@ package rx;
 
 import rx.internal.util.SubscriptionList;
 
-public abstract class DualSubscriber<T0, T1> implements DualObserver<T0, T1>, Subscription {
+public abstract class DyadSubscriber<T0, T1> implements DyadObserver<T0, T1>, Subscription {
 
     protected final SubscriptionList cs;
-    private final DualSubscriber<?, ?> op;
+    private final DyadSubscriber<?, ?> op;
     /* protected by `this` */
     private Producer p;
     /* protected by `this` */
     private long requested = Long.MIN_VALUE; // default to not set
 
-    protected DualSubscriber() {
+    protected DyadSubscriber() {
         this.op = null;
         this.cs = new SubscriptionList();
     }
 
-    protected DualSubscriber(DualSubscriber<?, ?> op) {
+    protected DyadSubscriber(DyadSubscriber<?, ?> op) {
         this.op = op;
         this.cs = op.cs;
+    }
+    
+    protected DyadSubscriber(Subscriber<?> op) {
+        this();
+        this.cs.add(op);
     }
 
     /**

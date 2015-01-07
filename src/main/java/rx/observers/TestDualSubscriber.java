@@ -4,27 +4,27 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import rx.DualObserver;
-import rx.DualSubscriber;
+import rx.DyadObserver;
+import rx.DyadSubscriber;
 import rx.Notification;
 import rx.Subscriber;
 
-public class TestDualSubscriber<T0, T1> extends DualSubscriber<T0, T1> {
+public class TestDualSubscriber<T0, T1> extends DyadSubscriber<T0, T1> {
 
     private final TestDualObserver<T0, T1> testObserver;
     private final CountDownLatch latch = new CountDownLatch(1);
     private volatile Thread lastSeenThread;
 
-    public TestDualSubscriber(DualSubscriber<T0, T1> delegate) {
+    public TestDualSubscriber(DyadSubscriber<T0, T1> delegate) {
         this.testObserver = new TestDualObserver<T0, T1>(delegate);
     }
 
-    public TestDualSubscriber(DualObserver<T0, T1> delegate) {
+    public TestDualSubscriber(DyadObserver<T0, T1> delegate) {
         this.testObserver = new TestDualObserver<T0, T1>(delegate);
     }
 
     public TestDualSubscriber() {
-        this.testObserver = new TestDualObserver<T0, T1>(new DualObserver<T0, T1>() {
+        this.testObserver = new TestDualObserver<T0, T1>(new DyadObserver<T0, T1>() {
 
             @Override
             public void onComplete() {

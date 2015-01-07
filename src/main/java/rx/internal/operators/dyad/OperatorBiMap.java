@@ -1,11 +1,11 @@
-package rx.internal.operators;
+package rx.internal.operators.dyad;
 
-import rx.BiSubscriber;
+import rx.DyadSubscriber;
 import rx.Subscriber;
-import rx.BiObservable.BiOperator;
 import rx.functions.Func2;
+import rx.operators.DyadToSingleOperator;
 
-public class OperatorBiMap<R, T0, T1> implements BiOperator<R, T0, T1> {
+public class OperatorBiMap<R, T0, T1> implements DyadToSingleOperator<R, T0, T1> {
 
     private Func2<? super T0, ? super T1, ? extends R> func;
 
@@ -14,8 +14,8 @@ public class OperatorBiMap<R, T0, T1> implements BiOperator<R, T0, T1> {
     }
 
     @Override
-    public BiSubscriber<? super T0, ? super T1> wrapDualToSingle(final Subscriber<? super R> child) {
-        return new BiSubscriber<T0, T1>(child) {
+    public DyadSubscriber<? super T0, ? super T1> call(final Subscriber<? super R> child) {
+        return new DyadSubscriber<T0, T1>(child) {
 
             @Override
             public void onNext(T0 t0, T1 t1) {

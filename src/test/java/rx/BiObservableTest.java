@@ -11,7 +11,7 @@ public class BiObservableTest {
         Observable<Stage1> ops = Observable.range(0, 10)
                 .map(id -> new Stage1(id, "args"));
 
-        BiObservable
+        DyadObservable
                 .generate(ops, stage1 -> new OperationLogger(stage1.getId()))
                 .map1((stage1, logger) -> {
                     try {
@@ -30,7 +30,7 @@ public class BiObservableTest {
                     String content = stage2.getContent();
                     writer.write(content);
                     return content;
-                }).subcribe(new DualSubscriber<String, OutputWriter>() {
+                }).subcribe(new DyadSubscriber<String, OutputWriter>() {
                     @Override
                     public void onNext(String content, OutputWriter writer) {
                         Objects.requireNonNull(writer);

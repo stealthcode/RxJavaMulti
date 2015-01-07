@@ -4,23 +4,23 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import rx.DualObserver;
+import rx.DyadObserver;
 import rx.Notification;
 
-public class TestDualObserver<T0, T1> implements DualObserver<T0, T1> {
+public class TestDualObserver<T0, T1> implements DyadObserver<T0, T1> {
 
-    private final DualObserver<T0, T1> delegate;
+    private final DyadObserver<T0, T1> delegate;
     private final ArrayList<TestEvent<T0, T1>> onNextEvents = new ArrayList<TestEvent<T0, T1>>();
     private final ArrayList<Throwable> onErrorEvents = new ArrayList<Throwable>();
     private final ArrayList<DualNotification<T0, T1>> onCompletedEvents = new ArrayList<DualNotification<T0, T1>>();
 
-    public TestDualObserver(DualObserver<T0, T1> delegate) {
+    public TestDualObserver(DyadObserver<T0, T1> delegate) {
         this.delegate = delegate;
     }
 
     @SuppressWarnings("unchecked")
     public TestDualObserver() {
-        this.delegate = (DualObserver<T0, T1>) INERT;
+        this.delegate = (DyadObserver<T0, T1>) INERT;
     }
 
     @Override
@@ -102,14 +102,14 @@ public class TestDualObserver<T0, T1> implements DualObserver<T0, T1> {
         }
 
         for (int i = 0; i < items.size(); i++) {
-            if (items.get(i) == null) {
+            final TestEvent<T0, T1> assertedTestEvent = items.get(i);
+            if (assertedTestEvent == null) {
                 // check for null equality
                 if (onNextEvents.get(i) != null) {
                     throw new AssertionError("Value at index: " + i + " expected to be [null] but was: [" + onNextEvents.get(i) + "]");
                 }
-            } else if (!items.get(i).equals(onNextEvents.get(i))) {
-                throw new AssertionError("Value at index: " + i + " expected to be [" + items.get(i) + "] (" + items
-                        .get(i).getClass().getSimpleName() + ") but was: [" + onNextEvents.get(i) + "] (" + onNextEvents
+            } else if (!assertedTestEvent.t0.equals(onNextEvents.get(i).t0) || !(assertedTestEvent.t1.equals(onNextEvents.get(i).t1))) {
+                throw new AssertionError("Value at index: " + i + " expected to be [" + assertedTestEvent + "] (" + assertedTestEvent.getClass().getSimpleName() + ") but was: [" + onNextEvents.get(i) + "] (" + onNextEvents
                         .get(i).getClass().getSimpleName() + ")");
 
             }
@@ -143,7 +143,7 @@ public class TestDualObserver<T0, T1> implements DualObserver<T0, T1> {
     }
 
     // do nothing ... including swallowing errors
-    private static DualObserver<Object, Object> INERT = new DualObserver<Object, Object>() {
+    private static DyadObserver<Object, Object> INERT = new DyadObserver<Object, Object>() {
 
         @Override
         public void onComplete() {

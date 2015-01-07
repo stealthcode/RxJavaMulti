@@ -1,11 +1,11 @@
-package rx.internal.operators;
+package rx.internal.operators.dyad;
 
-import rx.DualSubscriber;
+import rx.DyadSubscriber;
 import rx.Subscriber;
-import rx.BiObservable.SingleToDualOperator;
 import rx.functions.Func1;
+import rx.operators.SingleToDyadOperator;
 
-public class OperatorGenerate<T0, T1> implements SingleToDualOperator<T0, T1, T0> {
+public class OperatorGenerate<T0, T1> implements SingleToDyadOperator<T0, T1, T0> {
 
     private Func1<? super T0, ? extends T1> generatorFunc;
 
@@ -14,7 +14,7 @@ public class OperatorGenerate<T0, T1> implements SingleToDualOperator<T0, T1, T0
     }
 
     @Override
-    public Subscriber<T0> wrapSingleToDual(final DualSubscriber<? super T0, ? super T1> child) {
+    public Subscriber<T0> call(final DyadSubscriber<? super T0, ? super T1> child) {
         return new Subscriber<T0>() {
             @Override
             public void onCompleted() {
