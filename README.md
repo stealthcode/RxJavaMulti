@@ -49,3 +49,35 @@ DyadObservable<Movie, Language> pairs = DyadObservable.sparseProduct(movies, (Mo
   return from(langs);
 });
 ```
+
+## Usage
+
+### Filtering
+A filter predicate can be written for the first, second, or both elements of a 
+dyad. The following example filters all dyads but one based on the second 
+element.
+
+```java
+DyadObservable.generate(Observable.range(0,100), (Integer i) -> { return i == 42 ? “yep” : “nope”; })
+    .filter2((Boolean isAnswer) -> { return isAnswer.equals(“yep”); });
+```
+
+### Mapping to a Single Element
+Dyads can be mapped back to a single valued `Observable` using the `bimap` 
+operator.
+
+```java
+Observable<Integer> nums = Observable.range(0,99);
+Observable<Integer> factorsOf3 = nums.map((Integer i) -> {return i * 3;});
+Observable<Integer> factorsOf5 = DyadObservable.attach(nums, 5).biMap((Integer i, Integer factor) -> {return i * factor;});
+```
+
+### Mapping to a Dyad
+You can replace a single element of a dyad at a time.
+
+```java
+DyadObservable<String, MyMovieService> synopsis = DyadObservable.attach(getAllMovies(), MyMovieService())
+    .map1((Movie m, MyMovieService service) -> { return service.getSynopsis(m); });
+```
+
+
