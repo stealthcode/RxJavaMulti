@@ -20,6 +20,7 @@ import rx.internal.operators.dyad.OperatorTakeLast;
 import rx.operators.DyadOperator;
 import rx.operators.DyadToSingleOperator;
 import rx.operators.SingleToDyadOperator;
+
 // dyad, triad, tetrad, pentad
 public class DyadObservable<T0, T1> {
     private DyadOnSubscribe<T0, T1> onSubscribeFunc;
@@ -33,13 +34,12 @@ public class DyadObservable<T0, T1> {
      * @param <T1>
      *            type of second argument
      */
-    public static interface DyadOnSubscribe<T0, T1> extends Action1<DyadSubscriber<? super T0, ? super T1>> {
-    }
+    public static interface DyadOnSubscribe<T0, T1> extends Action1<DyadSubscriber<? super T0, ? super T1>> {}
 
     /**
      * @param onSubscribeFunc
      */
-    protected DyadObservable(DyadOnSubscribe<T0, T1> onSubscribeFunc) {
+    private DyadObservable(DyadOnSubscribe<T0, T1> onSubscribeFunc) {
         this.onSubscribeFunc = onSubscribeFunc;
     }
 
@@ -59,7 +59,7 @@ public class DyadObservable<T0, T1> {
     }
 
     /**
-     * Create a new BiObservable that defers the subscription of {@code this} with a
+     * Create a new DyadObservable that defers the subscription of {@code this} with a
      * {@link DyadSubscriber subscriber} that applies the given operator's effect to values produced
      * when subscribed to.
      * 
@@ -81,8 +81,8 @@ public class DyadObservable<T0, T1> {
     /**
      * Create a new {@link Observable} that defers the subscription of {@code this} with a
      * {@link DyadSubscriber subscriber} that applies the given operator's effect to values produced
-     * when subscribed to. This overload of {@code lift} converts a BiObservable to a single-valued
-     * Observable.
+     * when subscribed to. This overload of {@code lift} converts a DyadObservable to a
+     * single-valued Observable.
      * 
      * @param operator
      *            a function to adapt the types and semantics of the downstream operator.
@@ -121,29 +121,29 @@ public class DyadObservable<T0, T1> {
     }
 
     /**
-     * Converts an Observable to a BiObservable by applying a function to generate a second value
+     * Converts an Observable to a DyadObservable by applying a function to generate a second value
      * based on the values produced by the {@code observable}.
      * 
      * @param observable
      *            the producer
      * @param generatorFunc
-     *            ran once per call made to onNext to produce the paired BiObservable's second
+     *            ran once per call made to onNext to produce the paired DyadObservable's second
      *            value
-     * @return a BiObservable encapsulating the subscription to the given {@code observable}
+     * @return a DyadObservable encapsulating the subscription to the given {@code observable}
      */
     public static <T0, T1> DyadObservable<T0, T1> generate(final Observable<? extends T0> observable, final Func1<? super T0, ? extends T1> generatorFunc) {
         return DyadObservable.lift(observable, new OperatorGenerate<T0, T1>(generatorFunc));
     }
 
     /**
-     * Creates a BiObservable by zipping two observables. Each value produced by the returned
-     * BiObservable is the pair of each value emitted by the given observables.
+     * Creates a DyadObservable by zipping two observables. Each value produced by the returned
+     * DyadObservable is the pair of each value emitted by the given observables.
      * 
      * @param ob0
      *            the first observable
      * @param ob1
      *            the second observable
-     * @return a BiObservable encapsulating the subscription to both observables
+     * @return a DyadObservable encapsulating the subscription to both observables
      */
     public static <T0, T1> DyadObservable<T0, T1> zip(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new DyadOnSubscribe<T0, T1>() {
@@ -210,13 +210,13 @@ public class DyadObservable<T0, T1> {
     }
 
     /**
-     * Creates a BiObservable that emits one pair of elements for each combination of the elements
+     * Creates a DyadObservable that emits one pair of elements for each combination of the elements
      * emitted by the observables passed as parameters. This produces the Cartesian product of all
      * emitted elements from two observables.
      * 
      * @param ob0
      * @param ob1
-     * @return a BiObservable that produces the Cartesian product of
+     * @return a DyadObservable that produces the Cartesian product of
      */
     public static <T0, T1> DyadObservable<T0, T1> product(final Observable<? extends T0> ob0, final Observable<? extends T1> ob1) {
         return create(new DyadOnSubscribe<T0, T1>() {
@@ -253,14 +253,14 @@ public class DyadObservable<T0, T1> {
     }
 
     /**
-     * Creates a BiObservable from an observable and a non-deterministic-arity generator function.
+     * Creates a DyadObservable from an observable and a non-deterministic-arity generator function.
      * This emits a pair of each generatorFunc's output element with the input it was obtained from.
      * Note that if the generatorFunc produces an "empty" observable then no pairs will be emitted
      * for that input element.
      * 
      * @param ob0
      * @param generatorFunc
-     * @return a BiObservable that
+     * @return a DyadObservable that
      */
     public static <T0, T1> DyadObservable<T0, T1> sparseProduct(final Observable<? extends T0> ob0, final Func1<? super T0, Observable<T1>> generatorFunc) {
         return create(new DyadOnSubscribe<T0, T1>() {
@@ -319,28 +319,30 @@ public class DyadObservable<T0, T1> {
     }
 
     /**
-     * Returns a BiObservable that applies a specified function to each pair of items emitted by the
-     * source BiObservable and emits the results of these function applications, replacing the
+     * Returns a DyadObservable that applies a specified function to each pair of items emitted by
+     * the source DyadObservable and emits the results of these function applications, replacing the
      * second item with the results. This overload accepts a Func2 that will receive both items
-     * emitted by the BiObservable as arguments.
+     * emitted by the DyadObservable as arguments.
      * 
      * @param func
      *            the function used to produce the new value.
-     * @return a BiObservable which transforms the first item emitted using the specified function.
+     * @return a DyadObservable which transforms the first item emitted using the specified
+     *         function.
      */
     public <R> DyadObservable<? extends R, ? extends T1> map1(final Func2<? super T0, ? super T1, ? extends R> func) {
         return lift(OperatorMapDual.dualMap1Operator(func));
     }
 
     /**
-     * Returns a BiObservable that applies a specified function to each pair of items emitted by the
-     * source BiObservable and emits the results of these function applications, replacing the
+     * Returns a DyadObservable that applies a specified function to each pair of items emitted by
+     * the source DyadObservable and emits the results of these function applications, replacing the
      * second item with the results. This overload accepts a Func1 that will receive the first item
-     * emitted by the BiObservable as an argument.
+     * emitted by the DyadObservable as an argument.
      * 
      * @param func
      *            the function used to produce the new value.
-     * @return a BiObservable which transforms the first item emitted using the specified function.
+     * @return a DyadObservable which transforms the first item emitted using the specified
+     *         function.
      */
     public <R> DyadObservable<? extends R, ? extends T1> map1(final Func1<? super T0, ? extends R> func) {
         return lift(OperatorMapDual.singleMap1Operator(func));
@@ -365,8 +367,8 @@ public class DyadObservable<T0, T1> {
     // <a,b,c,d> -> <r,d>
     // <a,b,c,d> -> <r>
     /**
-     * Returns a BiObservable that applies a specified function to each pair of items emitted by the
-     * source BiObservable and emits the results of these function applications, replacing the
+     * Returns a DyadObservable that applies a specified function to each pair of items emitted by
+     * the source DyadObservable and emits the results of these function applications, replacing the
      * emitted values with the result from the specified function.
      * 
      * @param func
@@ -499,28 +501,30 @@ public class DyadObservable<T0, T1> {
     }
 
     /**
-     * Returns a BiObservable that applies a specified function to each pair of items emitted by the
-     * source BiObservable and emits the results of these function applications, replacing the
+     * Returns a DyadObservable that applies a specified function to each pair of items emitted by
+     * the source DyadObservable and emits the results of these function applications, replacing the
      * second item with the results. This overload accepts a Func2 that will receive both items
-     * emitted by the BiObservable as arguments.
+     * emitted by the DyadObservable as arguments.
      * 
      * @param func
      *            the function used to produce the new value.
-     * @return a BiObservable which transforms the second item emitted using the specified function.
+     * @return a DyadObservable which transforms the second item emitted using the specified
+     *         function.
      */
     public <R> DyadObservable<T0, R> map2(Func2<? super T0, ? super T1, ? extends R> func) {
         return lift(OperatorMapDual.dualMap2Operator(func));
     }
 
     /**
-     * Returns a BiObservable that applies a specified function to each pair of items emitted by the
-     * source BiObservable and emits the results of these function applications, replacing the
+     * Returns a DyadObservable that applies a specified function to each pair of items emitted by
+     * the source DyadObservable and emits the results of these function applications, replacing the
      * second item with the results. This overload accepts a Func1 that will receive the second item
-     * emitted by the BiObservable as an argument.
+     * emitted by the DyadObservable as an argument.
      * 
      * @param func
      *            the function used to produce the new value.
-     * @return a BiObservable which transforms the second item emitted using the specified function.
+     * @return a DyadObservable which transforms the second item emitted using the specified
+     *         function.
      */
     public <R> DyadObservable<T0, R> map2(final Func1<? super T1, ? extends R> func) {
         return lift(OperatorMapDual.singleMap2Operator(func));

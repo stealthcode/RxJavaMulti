@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.io.File;
 import java.util.Objects;
 
-public class BiObservableTest {
+public class DyadObservableExample {
     @Test
     public void exampleOfUsage() {
         Observable<Stage1> ops = Observable.range(0, 10)
