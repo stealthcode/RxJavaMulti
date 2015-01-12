@@ -1,9 +1,5 @@
 package rx;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import rx.Observable.OnSubscribe;
 import rx.functions.Action1;
 import rx.functions.Action2;
@@ -11,7 +7,7 @@ import rx.functions.Func1;
 import rx.functions.Func2;
 import rx.functions.Func3;
 import rx.internal.operators.dyad.OperatorBiMap;
-import rx.internal.operators.dyad.OperatorDoOnNextDual;
+import rx.internal.operators.dyad.OperatorDoOnNext;
 import rx.internal.operators.dyad.OperatorFlip;
 import rx.internal.operators.dyad.OperatorGenerate;
 import rx.internal.operators.dyad.OperatorMapDual;
@@ -330,7 +326,7 @@ public class DyadObservable<T0, T1> {
      *         function.
      */
     public <R> DyadObservable<? extends R, ? extends T1> map1(final Func2<? super T0, ? super T1, ? extends R> func) {
-        return lift(OperatorMapDual.dualMap1Operator(func));
+        return lift(OperatorMapDual.dyad1Operator(func));
     }
 
     /**
@@ -345,7 +341,7 @@ public class DyadObservable<T0, T1> {
      *         function.
      */
     public <R> DyadObservable<? extends R, ? extends T1> map1(final Func1<? super T0, ? extends R> func) {
-        return lift(OperatorMapDual.singleMap1Operator(func));
+        return lift(OperatorMapDual.mono1Operator(func));
     }
 
     // for TriObservable we'll need many combinations of flatten
@@ -385,7 +381,7 @@ public class DyadObservable<T0, T1> {
      * @return
      */
     public DyadObservable<T0, T1> doOnNext(final Action2<? super T0, ? super T1> action) {
-        return lift(OperatorDoOnNextDual.dualActionOperator(action));
+        return lift(OperatorDoOnNext.dyadOperator(action));
     }
 
     /**
@@ -393,7 +389,7 @@ public class DyadObservable<T0, T1> {
      * @return
      */
     public DyadObservable<T0, T1> doOnNext1(final Action1<? super T0> action) {
-        return lift(OperatorDoOnNextDual.singleAction1Operator(action));
+        return lift(OperatorDoOnNext.mono1Operator(action));
     }
 
     /**
@@ -401,7 +397,7 @@ public class DyadObservable<T0, T1> {
      * @return
      */
     public DyadObservable<T0, T1> doOnNext2(final Action1<? super T1> action) {
-        return lift(OperatorDoOnNextDual.singleAction2Operator(action));
+        return lift(OperatorDoOnNext.mono2Operator(action));
     }
 
     /**
@@ -410,7 +406,32 @@ public class DyadObservable<T0, T1> {
      * @return
      */
     public <R> DyadObservable<R, T1> scan1(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
-        return lift(new OperatorScan<T0, T1, R>(seed, func));
+        return lift(OperatorScan.dyad1Operator(seed, func));
+    }
+
+    /**
+     * @param func
+     * @return
+     */
+    public DyadObservable<T0, T1> scan1(final Func3<T0, ? super T0, ? super T1, T0> func) {
+        return lift(OperatorScan.dyad1Operator(func));
+    }
+
+    /**
+     * @param seed
+     * @param func
+     * @return
+     */
+    public <R> DyadObservable<T0, R> scan2(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
+        return lift(OperatorScan.dyad2Operator(seed, func));
+    }
+
+    /**
+     * @param func
+     * @return
+     */
+    public DyadObservable<T0, T1> scan2(final Func3<T1, ? super T0, ? super T1, T1> func) {
+        return lift(OperatorScan.dyad2Operator(func));
     }
 
     /**
@@ -425,7 +446,7 @@ public class DyadObservable<T0, T1> {
      * @param func
      * @return
      */
-    public <R> DyadObservable<R, T1> reduce1_(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
+    public <R> DyadObservable<R, T1> reduce1(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
         return scan1(seed, func).takeLast();
     }
 
@@ -434,35 +455,7 @@ public class DyadObservable<T0, T1> {
      * @return
      */
     public DyadObservable<T0, T1> reduce1(final Func3<T0, ? super T0, ? super T1, T0> func) {
-        return lift(new DyadOperator<T0, T1, T0, T1>() {
-
-            @Override
-            public DyadSubscriber<? super T0, ? super T1> call(final DyadSubscriber<? super T0, ? super T1> subscriber) {
-                final Map<T1, T0> seeds = new HashMap<T1, T0>();
-
-                return new DyadSubscriber<T0, T1>(subscriber) {
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        T0 seed = seeds.get(t1);
-                        seeds.put(t1, (seed == null) ? t0 : func
-                                .call(seed, t0, t1));
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        subscriber.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        for (Entry<T1, T0> results : seeds.entrySet()) {
-                            subscriber.onNext(results.getValue(), results
-                                    .getKey());
-                        }
-                    }
-                };
-            }
-        });
+        return scan1(func).takeLast();
     }
 
     /**
@@ -470,34 +463,16 @@ public class DyadObservable<T0, T1> {
      * @param func
      * @return
      */
-    public <R> DyadObservable<R, T1> reduce1(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
-        return lift(new DyadOperator<R, T1, T0, T1>() {
-            @Override
-            public DyadSubscriber<? super T0, ? super T1> call(final DyadSubscriber<? super R, ? super T1> subscriber) {
-                final Map<T1, R> seeds = new HashMap<T1, R>();
+    public <R> DyadObservable<T0, R> reduce2(R seed, final Func3<R, ? super T0, ? super T1, R> func) {
+        return scan2(seed, func).takeLast();
+    }
 
-                return new DyadSubscriber<T0, T1>(subscriber) {
-                    @Override
-                    public void onNext(T0 t0, T1 t1) {
-                        R seed = seeds.get(t1);
-                        seeds.put(t1, func.call(seed, t0, t1));
-                    }
-
-                    @Override
-                    public void onError(Throwable e) {
-                        subscriber.onError(e);
-                    }
-
-                    @Override
-                    public void onComplete() {
-                        for (Entry<T1, R> results : seeds.entrySet()) {
-                            subscriber.onNext(results.getValue(), results
-                                    .getKey());
-                        }
-                    }
-                };
-            }
-        });
+    /**
+     * @param func
+     * @return
+     */
+    public DyadObservable<T0, T1> reduce2(final Func3<T1, ? super T0, ? super T1, T1> func) {
+        return scan2(func).takeLast();
     }
 
     /**
@@ -512,7 +487,7 @@ public class DyadObservable<T0, T1> {
      *         function.
      */
     public <R> DyadObservable<T0, R> map2(Func2<? super T0, ? super T1, ? extends R> func) {
-        return lift(OperatorMapDual.dualMap2Operator(func));
+        return lift(OperatorMapDual.dyad2Operator(func));
     }
 
     /**
@@ -527,7 +502,7 @@ public class DyadObservable<T0, T1> {
      *         function.
      */
     public <R> DyadObservable<T0, R> map2(final Func1<? super T1, ? extends R> func) {
-        return lift(OperatorMapDual.singleMap2Operator(func));
+        return lift(OperatorMapDual.mono2Operator(func));
     }
 
     /**
