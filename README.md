@@ -80,5 +80,9 @@ DyadObservable<String, MyMovieService> pair = DyadObservable.attach(getAllMovies
     .map1((Movie m, MyMovieService service) -> { return service.getSynopsis(m); });
 ```
 
-### Reducing
-The `reduce1` and `reduce2` operators will replace the first 
+### Scanning
+The `scan1` and `scan2` operators will replace the first or second element of a dyad 
+respectively with the result of the provided accumulator function. This will preserve 
+the second element for each dyad. Note that scanning over a dyad cannot emit the 
+provided seed value as the pre-computation onNext because there is no second element of 
+the dyad to emit.
