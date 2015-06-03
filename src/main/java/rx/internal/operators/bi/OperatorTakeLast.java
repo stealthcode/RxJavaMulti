@@ -1,13 +1,13 @@
-package rx.internal.operators.dyad;
+package rx.internal.operators.bi;
 
-import rx.DyadSubscriber;
-import rx.operators.DyadOperator;
+import rx.BiSubscriber;
+import rx.operators.BiOperator;
 
-public class OperatorTakeLast<T0, T1> implements DyadOperator<T0, T1, T0, T1> {
+public class OperatorTakeLast<T0, T1> implements BiOperator<T0, T1, T0, T1> {
 
     @Override
-    public DyadSubscriber<? super T0, ? super T1> call(DyadSubscriber<? super T0, ? super T1> child) {
-        return new DyadSubscriber<T0, T1>() {
+    public BiSubscriber<? super T0, ? super T1> call(BiSubscriber<? super T0, ? super T1> child) {
+        return new BiSubscriber<T0, T1>() {
             T0 lastT0;
             T1 lastT1;
             private boolean haveLast;

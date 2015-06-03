@@ -1,4 +1,4 @@
-package rx.internal.operators.dyad;
+package rx.internal.operators.bi;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -9,29 +9,29 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import rx.DyadSubscriber;
-import rx.DyadObservable;
-import rx.DyadObservable.DyadOnSubscribe;
-import rx.observers.TestDualSubscriber;
+import rx.BiSubscriber;
+import rx.BiObservable;
+import rx.BiObservable.BiOnSubscribe;
+import rx.observers.TestBiSubscriber;
 import rx.observers.TestEvent;
 
 public class OperatorDoOnNextDualTest {
     final String i0 = "foo";
     final String i1 = "bar";
     
-    final DyadObservable<String, String> source = DyadObservable
-            .create(new DyadOnSubscribe<String, String>() {
+    final BiObservable<String, String> source = BiObservable
+            .create(new BiOnSubscribe<String, String>() {
                 @Override
-                public void call(DyadSubscriber<? super String, ? super String> child) {
+                public void call(BiSubscriber<? super String, ? super String> child) {
                     child.onNext(i0, i1);
                     child.onComplete();
                 }
             });
-    TestDualSubscriber<String, String> testSubscriber;
+    TestBiSubscriber<String, String> testSubscriber;
     
     @Before
     public void setup() {
-        testSubscriber = new TestDualSubscriber<String, String>();
+        testSubscriber = new TestBiSubscriber<String, String>();
     }
     
     @Test

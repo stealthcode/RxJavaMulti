@@ -4,27 +4,27 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import rx.DyadObserver;
-import rx.DyadSubscriber;
+import rx.BiObserver;
+import rx.BiSubscriber;
 import rx.Notification;
 import rx.Subscriber;
 
-public class TestDualSubscriber<T0, T1> extends DyadSubscriber<T0, T1> {
+public class TestBiSubscriber<T0, T1> extends BiSubscriber<T0, T1> {
 
-    private final TestDualObserver<T0, T1> testObserver;
+    private final TestBiObserver<T0, T1> testObserver;
     private final CountDownLatch latch = new CountDownLatch(1);
     private volatile Thread lastSeenThread;
 
-    public TestDualSubscriber(DyadSubscriber<T0, T1> delegate) {
-        this.testObserver = new TestDualObserver<T0, T1>(delegate);
+    public TestBiSubscriber(BiSubscriber<T0, T1> delegate) {
+        this.testObserver = new TestBiObserver<T0, T1>(delegate);
     }
 
-    public TestDualSubscriber(DyadObserver<T0, T1> delegate) {
-        this.testObserver = new TestDualObserver<T0, T1>(delegate);
+    public TestBiSubscriber(BiObserver<T0, T1> delegate) {
+        this.testObserver = new TestBiObserver<T0, T1>(delegate);
     }
 
-    public TestDualSubscriber() {
-        this.testObserver = new TestDualObserver<T0, T1>(new DyadObserver<T0, T1>() {
+    public TestBiSubscriber() {
+        this.testObserver = new TestBiObserver<T0, T1>(new BiObserver<T0, T1>() {
 
             @Override
             public void onComplete() {
@@ -67,7 +67,7 @@ public class TestDualSubscriber<T0, T1> extends DyadSubscriber<T0, T1> {
      * @return a list of Notifications representing calls to this Subscriber's {@link #onCompleted}
      *         method
      */
-    public List<DualNotification<T0, T1>> getOnCompletedEvents() {
+    public List<BiNotification<T0, T1>> getOnCompletedEvents() {
         return testObserver.getOnCompletedEvents();
     }
 

@@ -4,28 +4,28 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import rx.DyadObserver;
+import rx.BiObserver;
 import rx.Notification;
 
-public class TestDualObserver<T0, T1> implements DyadObserver<T0, T1> {
+public class TestBiObserver<T0, T1> implements BiObserver<T0, T1> {
 
-    private final DyadObserver<T0, T1> delegate;
+    private final BiObserver<T0, T1> delegate;
     private final ArrayList<TestEvent<T0, T1>> onNextEvents = new ArrayList<TestEvent<T0, T1>>();
     private final ArrayList<Throwable> onErrorEvents = new ArrayList<Throwable>();
-    private final ArrayList<DualNotification<T0, T1>> onCompletedEvents = new ArrayList<DualNotification<T0, T1>>();
+    private final ArrayList<BiNotification<T0, T1>> onCompletedEvents = new ArrayList<BiNotification<T0, T1>>();
 
-    public TestDualObserver(DyadObserver<T0, T1> delegate) {
+    public TestBiObserver(BiObserver<T0, T1> delegate) {
         this.delegate = delegate;
     }
 
     @SuppressWarnings("unchecked")
-    public TestDualObserver() {
-        this.delegate = (DyadObserver<T0, T1>) INERT;
+    public TestBiObserver() {
+        this.delegate = (BiObserver<T0, T1>) INERT;
     }
 
     @Override
     public void onComplete() {
-        onCompletedEvents.add(DualNotification.<T0, T1>createOnCompleted());
+        onCompletedEvents.add(BiNotification.<T0, T1>createOnCompleted());
         delegate.onComplete();
     }
 
@@ -36,7 +36,7 @@ public class TestDualObserver<T0, T1> implements DyadObserver<T0, T1> {
      * @return a list of Notifications representing calls to this observer's {@link #onCompleted}
      *         method
      */
-    public List<DualNotification<T0, T1>> getOnCompletedEvents() {
+    public List<BiNotification<T0, T1>> getOnCompletedEvents() {
         return Collections.unmodifiableList(onCompletedEvents);
     }
 
@@ -143,7 +143,7 @@ public class TestDualObserver<T0, T1> implements DyadObserver<T0, T1> {
     }
 
     // do nothing ... including swallowing errors
-    private static DyadObserver<Object, Object> INERT = new DyadObserver<Object, Object>() {
+    private static BiObserver<Object, Object> INERT = new BiObserver<Object, Object>() {
 
         @Override
         public void onComplete() {

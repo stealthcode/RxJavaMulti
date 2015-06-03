@@ -1,21 +1,21 @@
-package rx.internal.operators.dyad;
+package rx.internal.operators.bi;
 
-import rx.DyadSubscriber;
+import rx.BiSubscriber;
 import rx.Subscriber;
 import rx.functions.Func2;
-import rx.operators.DyadToSingleOperator;
+import rx.operators.BiToSingleOperator;
 
-public class OperatorBiMap<R, T0, T1> implements DyadToSingleOperator<R, T0, T1> {
+public class OperatorBiToMonoMap<R, T0, T1> implements BiToSingleOperator<R, T0, T1> {
 
     private Func2<? super T0, ? super T1, ? extends R> func;
 
-    public OperatorBiMap(Func2<? super T0, ? super T1, ? extends R> func) {
+    public OperatorBiToMonoMap(Func2<? super T0, ? super T1, R> func) {
         this.func = func;
     }
 
     @Override
-    public DyadSubscriber<? super T0, ? super T1> call(final Subscriber<? super R> child) {
-        return new DyadSubscriber<T0, T1>(child) {
+    public BiSubscriber<? super T0, ? super T1> call(final Subscriber<? super R> child) {
+        return new BiSubscriber<T0, T1>(child) {
 
             @Override
             public void onNext(T0 t0, T1 t1) {

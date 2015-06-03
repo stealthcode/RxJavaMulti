@@ -6,7 +6,7 @@ package rx;
  * @param <T0>
  * @param <T1>
  */
-public interface DyadObserver<T0, T1> {
+public interface BiObserver<T0, T1> {
     /**
      * @param t0
      * @param t1

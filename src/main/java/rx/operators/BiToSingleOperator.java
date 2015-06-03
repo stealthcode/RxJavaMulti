@@ -1,6 +1,6 @@
 package rx.operators;
 
-import rx.DyadSubscriber;
+import rx.BiSubscriber;
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Func1;
@@ -13,10 +13,10 @@ import rx.functions.Func1;
  * @param <R>
  *            type of a valid downstream {@link Subscriber}
  * @param <T0>
- *            type of first argument
+ *            type of the parent BiSubscriber's first value
  * @param <T1>
- *            type of second argument
+ *            type of the parent BiSubscriber's second value
  */
-public interface DyadToSingleOperator<R, T0, T1> extends Func1<Subscriber<? super R>, DyadSubscriber<? super T0, ? super T1>> {
+public interface BiToSingleOperator<R, T0, T1> extends Func1<Subscriber<? super R>, BiSubscriber<? super T0, ? super T1>> {
 
 }

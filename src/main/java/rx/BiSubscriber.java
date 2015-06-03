@@ -2,26 +2,26 @@ package rx;
 
 import rx.internal.util.SubscriptionList;
 
-public abstract class DyadSubscriber<T0, T1> implements DyadObserver<T0, T1>, Subscription {
+public abstract class BiSubscriber<T0, T1> implements BiObserver<T0, T1>, Subscription {
 
     protected final SubscriptionList cs;
-    private final DyadSubscriber<?, ?> op;
+    private final BiSubscriber<?, ?> op;
     /* protected by `this` */
     private Producer p;
     /* protected by `this` */
     private long requested = Long.MIN_VALUE; // default to not set
 
-    protected DyadSubscriber() {
+    protected BiSubscriber() {
         this.op = null;
         this.cs = new SubscriptionList();
     }
 
-    protected DyadSubscriber(DyadSubscriber<?, ?> op) {
+    protected BiSubscriber(BiSubscriber<?, ?> op) {
         this.op = op;
         this.cs = op.cs;
     }
     
-    protected DyadSubscriber(Subscriber<?> op) {
+    protected BiSubscriber(Subscriber<?> op) {
         this();
         this.cs.add(op);
     }
